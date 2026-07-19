@@ -1,0 +1,38 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# n8n runtime and execution data
+.n8n/
+n8n-data/
+executions/
+binaryData/
+
+# Real or private documents
+private-data/
+real-contracts/
+client-data/
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+*.tmp
+
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node/Python caches
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
