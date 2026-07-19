@@ -1,0 +1,52 @@
+{
+  "test_cases": [
+    {
+      "id": "TC-01",
+      "file": "01-low-risk-contract.pdf",
+      "expected_http_status": 200,
+      "expected_risk_level": "LOW",
+      "expected_priority": "Normal",
+      "expected_review_required": false,
+      "facts_to_extract": [
+        "Effective date: 2026-09-01",
+        "Termination date: 2027-08-31",
+        "Monthly fee: 3000 MAD",
+        "Thirty-day termination notice"
+      ]
+    },
+    {
+      "id": "TC-02",
+      "file": "02-medium-risk-contract.pdf",
+      "expected_http_status": 200,
+      "expected_risk_level": "MEDIUM",
+      "expected_priority": "Review",
+      "expected_review_required": true,
+      "facts_to_extract": [
+        "Effective date: 2026-10-01",
+        "Monthly fee: 4500 MAD",
+        "Automatic renewal",
+        "Service credits are not specified"
+      ]
+    },
+    {
+      "id": "TC-03",
+      "file": "03-high-risk-contract.pdf",
+      "expected_http_status": 200,
+      "expected_risk_level": "HIGH",
+      "expected_priority": "Critical",
+      "expected_review_required": true,
+      "facts_to_extract": [
+        "Upfront fee: 120000 MAD",
+        "Unlimited client liability",
+        "Unilateral changes by the provider",
+        "No client termination right"
+      ]
+    },
+    {
+      "id": "TC-04",
+      "file": "04-invalid-file.txt",
+      "expected_http_status": 400,
+      "expected_status": "UNSUPPORTED_FILE"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+This is intentionally not a PDF. It verifies that the workflow rejects unsupported file types.
