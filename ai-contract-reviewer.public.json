@@ -1,0 +1,1113 @@
+{
+  "name": "AI Contract Reviewer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract-review",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "76548ab9-4975-4dee-b72b-3b75d4b83738",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e06dd196-19db-4cf6-a4cc-a2b05bf3c15b",
+              "leftValue": "={{ $binary.file.mimeType }}",
+              "rightValue": "application/pdf",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "224bb5ec-94b4-4888-af8d-e0dac1ead36b",
+      "name": "Validate File"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"UNSUPPORTED_FILE\",\n  \"error\": \"Only PDF files are supported in V1.\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        688,
+        192
+      ],
+      "id": "39f67c06-8486-4115-95ec-652cf3132e8a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0892ba02-45cd-4741-bd81-7658fd6ab1e4",
+              "name": "status",
+              "value": "UNSUPPORTED_FILE",
+              "type": "string"
+            },
+            {
+              "id": "5a1cd40c-9ab4-47a4-a446-0233f4086c3d",
+              "name": "message",
+              "value": "Only PDF files are supported in V1.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        192
+      ],
+      "id": "4ce83289-31df-4ab0-88b5-14b03e5ed877",
+      "name": "Unsupported File"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        -16
+      ],
+      "id": "0cfec2e3-4ed9-4617-9601-3513f9e4a5c0",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6c88664d-6318-4cf9-8d0d-8838d823a68d",
+              "leftValue": "={{ $json.document_length > 100 }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        -16
+      ],
+      "id": "f0425a83-fc19-413e-9371-aa834d760123",
+      "name": "Validate Text Length"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8fe54a8d-86f1-416c-8fc1-8b4fb1f9db1f",
+              "name": "status",
+              "value": "UNSUPPORTED_SCANNED_DOCUMENT",
+              "type": "string"
+            },
+            {
+              "id": "f4cf54a0-426b-4a32-93d2-4bef51e8b610",
+              "name": "error",
+              "value": "No readable text found in PDF.",
+              "type": "string"
+            },
+            {
+              "id": "a3eda958-646a-4cad-9558-da06c481cf40",
+              "name": "processed_at",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        256
+      ],
+      "id": "22199f5d-be32-4d00-a5b8-56a920206d9a",
+      "name": "Unsupported Scanned Document"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1312,
+        256
+      ],
+      "id": "1543e799-1573-4ac1-8288-d05004025f42",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following contract.\n\n{{$json.document_text}}\n\nReturn ONLY a valid JSON object.\n\nUse EXACTLY this structure:\n\n{\n  \"document_type\": \"\",\n  \"summary\": \"\",\n  \"parties\": [],\n  \"effective_date\": null,\n  \"termination_date\": null,\n  \"amounts\": [\n    {\n      \"label\": \"\",\n      \"value\": null,\n      \"currency\": null\n    }\n  ],\n  \"obligations\": [\n    {\n      \"party\": \"\",\n      \"obligation\": \"\"\n    }\n  ],\n  \"points_to_verify\": [],\n  \"risk_level\": \"LOW\",\n  \"confidence\": 0.0\n}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert contract analyzer.  Rules:  - Return ONLY valid JSON. - Never use markdown. - Never use ```json. - Never explain your answer. - Never invent information. - If information is missing, use null. - Risk level must be one of:   LOW   MEDIUM   HIGH - Confidence must be between 0 and 1."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1168,
+        -160
+      ],
+      "id": "101a5adb-3d56-426e-b5bc-d552d6a86fe2",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        48
+      ],
+      "id": "fbefb8e4-ac1f-44e0-a4b3-3e119c981712",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"document_type\": \"Service Agreement\",\n  \"summary\": \"Agreement between Atlas Services SARL and NovaTech SARL.\",\n  \"parties\": [\n    \"Atlas Services SARL\",\n    \"NovaTech SARL\"\n  ],\n  \"effective_date\": \"2026-08-01\",\n  \"termination_date\": \"2027-07-31\",\n  \"amounts\": [\n    {\n      \"label\": \"Monthly Fee\",\n      \"value\": 4500,\n      \"currency\": \"MAD\"\n    }\n  ],\n  \"obligations\": [\n    {\n      \"party\": \"NovaTech SARL\",\n      \"obligation\": \"Provide IT maintenance and technical support.\"\n    },\n    {\n      \"party\": \"Atlas Services SARL\",\n      \"obligation\": \"Pay invoices within 15 days.\"\n    }\n  ],\n  \"points_to_verify\": [\n    \"Termination notice period is not specified.\"\n  ],\n  \"risk_level\": \"MEDIUM\",\n  \"confidence\": 0.94\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1264,
+        64
+      ],
+      "id": "c09ab020-0eca-4542-a35b-22cf848207c4",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.risk_level }}",
+                    "rightValue": "LOW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c2c6d734-6299-4897-b97d-27f4b4d13df0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOW"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ebebd999-09f2-47b3-90d4-4b63917a25bf",
+                    "leftValue": "={{ $json.risk_level }}",
+                    "rightValue": "MEDIUM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MEDIUM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "23e8ba4b-3589-450f-8bf5-a61a0f9c594f",
+                    "leftValue": "={{ $json.risk_level }}",
+                    "rightValue": "HIGH",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HIGH"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1728,
+        -64
+      ],
+      "id": "49528ff7-5eef-48c7-a581-1061b9f4bef5",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2416,
+        -96
+      ],
+      "id": "1f7bd8d0-dc23-4afd-b934-ab6ca6d16cdc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Select your Google Sheet"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Select your sheet"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "risk_level": "={{ $json.risk_level }}",
+            "points_to_verify": "={{ JSON.stringify($json.points_to_verify) }}",
+            "confidence": "={{ $json.confidence }}",
+            "priority": "={{ $json.priority }}",
+            "review_required": "={{ $json.review_required }}",
+            "obligations": "={{ JSON.stringify($json.obligations) }}",
+            "amounts": "={{ JSON.stringify($json.amounts) }}",
+            "processed_at": "={{ $now }}",
+            "status": "Completed",
+            "analysis_id": "={{ $execution.id }}",
+            "file_name": "={{ $('Validate File').item.binary.file.fileName }}",
+            "document_type": "={{ $json.document_type }}",
+            "summary": "={{ $json.summary }}",
+            "parties": "={{ JSON.stringify($json.parties) }}",
+            "effective_date": "={{ $json.effective_date }}",
+            "termination_date": "={{ $json.termination_date }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "analysis_id",
+              "displayName": "analysis_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "document_type",
+              "displayName": "document_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "parties",
+              "displayName": "parties",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "effective_date",
+              "displayName": "effective_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "termination_date",
+              "displayName": "termination_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amounts",
+              "displayName": "amounts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "obligations",
+              "displayName": "obligations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "points_to_verify",
+              "displayName": "points_to_verify",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "risk_level",
+              "displayName": "risk_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_required",
+              "displayName": "review_required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processed_at",
+              "displayName": "processed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        -64
+      ],
+      "id": "d60c83c3-8954-4f11-9a02-38e81eccfb50",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "=AI Contract Review Completed ",
+        "message": "={{$json.html_report}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3088,
+        -48
+      ],
+      "id": "1473fe25-2d80-449e-a069-9f2cb42ea895",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    document_text: $json.text.trim(),\n    document_length: $json.text.trim().length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        -16
+      ],
+      "id": "b4726111-e8da-4a91-ad13-ec2151f6094a",
+      "name": "Normalize Document"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output =\n  $json.response?.output ??\n  $json.output ??\n  $json;\n\nreturn [\n  {\n    json: output\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -160
+      ],
+      "id": "2be11b5f-c81c-4f2c-a99d-c73f9c9a5b1f",
+      "name": "Parse AI Output"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5470d0de-2c54-4ca5-adba-95ded87136bb",
+              "name": "priority",
+              "value": "Normal",
+              "type": "string"
+            },
+            {
+              "id": "3165ea84-5aba-4ce1-9c98-0aabd359ede9",
+              "name": "review_required",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2064,
+        -208
+      ],
+      "id": "514e4d18-89c3-4b2b-9311-c37ca8a11eec",
+      "name": "LOW Priority",
+      "includeOtherFields": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "18a00479-8a2f-4676-b810-50d9994409a5",
+              "name": "priority",
+              "value": "Review",
+              "type": "string"
+            },
+            {
+              "id": "b66c183f-e865-47db-a270-a6b2effc8eb1",
+              "name": "review_required",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2048,
+        0
+      ],
+      "id": "da338b48-9df4-4c47-b28e-06919c38ef29",
+      "name": "MEDIUM Priority"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f2416fd6-a799-46ba-a756-71740e6edb12",
+              "name": "priority",
+              "value": "Critical",
+              "type": "string"
+            },
+            {
+              "id": "bd3a3d37-fb9f-4890-80b0-86121ec7ee34",
+              "name": "review_required",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2064,
+        224
+      ],
+      "id": "2c811f65-d4f0-4f45-a21e-5460da8f32cf",
+      "name": "HIGH Priority",
+      "includeOtherFields": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Convert JSON strings back to arrays if necessary\nconst parties =\n  typeof $json.parties === \"string\"\n    ? JSON.parse($json.parties)\n    : ($json.parties || []);\n\nconst points =\n  typeof $json.points_to_verify === \"string\"\n    ? JSON.parse($json.points_to_verify)\n    : ($json.points_to_verify || []);\n\nconst obligations =\n  typeof $json.obligations === \"string\"\n    ? JSON.parse($json.obligations)\n    : ($json.obligations || []);\n\nconst amounts =\n  typeof $json.amounts === \"string\"\n    ? JSON.parse($json.amounts)\n    : ($json.amounts || []);\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\nbody{\n    font-family:Arial,sans-serif;\n    margin:40px;\n    color:#222;\n}\n\nh1{\n    color:#1565C0;\n}\n\nh2{\n    color:#1565C0;\n    margin-top:30px;\n}\n\ntable{\n    width:100%;\n    border-collapse:collapse;\n}\n\nth,td{\n    border:1px solid #ddd;\n    padding:10px;\n}\n\nth{\n    background:#1565C0;\n    color:white;\n}\n</style>\n</head>\n\n<body>\n\n<h1>AI Contract Review Report</h1>\n\n<p><b>Generated:</b> ${new Date().toLocaleString()}</p>\n\n<table>\n\n<tr>\n<th>Document Type</th>\n<td>${$json.document_type}</td>\n</tr>\n\n<tr>\n<th>Risk Level</th>\n<td>${$json.risk_level}</td>\n</tr>\n\n<tr>\n<th>Confidence</th>\n<td>${$json.confidence}</td>\n</tr>\n\n<tr>\n<th>Priority</th>\n<td>${$json.priority}</td>\n</tr>\n\n<tr>\n<th>Review Required</th>\n<td>${$json.review_required}</td>\n</tr>\n\n</table>\n\n<h2>Summary</h2>\n\n<p>${$json.summary}</p>\n\n<h2>Parties</h2>\n\n<ul>\n${parties.map(p => `<li>${p}</li>`).join(\"\")}\n</ul>\n\n<h2>Financial Information</h2>\n\n<table>\n\n<tr>\n<th>Label</th>\n<th>Value</th>\n<th>Currency</th>\n</tr>\n\n${amounts.map(a=>`\n<tr>\n<td>${a.label}</td>\n<td>${a.value}</td>\n<td>${a.currency}</td>\n</tr>\n`).join(\"\")}\n\n</table>\n\n<h2>Obligations</h2>\n\n<ul>\n\n${obligations.map(o=>`\n<li>\n<b>${o.party}</b><br>\n${o.obligation}\n</li>\n`).join(\"\")}\n\n</ul>\n\n<h2>Points To Verify</h2>\n\n<ul>\n\n${points.map(p=>`\n<li>${p}</li>\n`).join(\"\")}\n\n</ul>\n\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    test: \"ok\",\n    html_report: html\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        -80
+      ],
+      "id": "feb45d89-16b5-4d22-ade7-e1ad08e42414",
+      "name": "Generate HTML Contract Report"
+    },
+    {
+      "parameters": {
+        "content": "## 🚀 AI Contract Reviewer\nObjective\n\nAnalyze PDF contracts automatically using AI.\n\nWorkflow:\n• Receive PDF\n• Extract text\n• Analyze with OpenAI\n• Classify risk\n• Generate HTML report\n• Save to Google Sheets\n• Send email notification",
+        "height": 432,
+        "width": 560,
+        "color": "#0BDA9C"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        352,
+        -784
+      ],
+      "id": "20f80210-a51e-419d-9a0e-6b427ce3803e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "📥 Input Validation\n\nPurpose\n• Receive uploaded file\n• Accept only PDF\n• Reject unsupported formats\n\nOutput\nValid PDF binary",
+        "height": 416,
+        "width": 416
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        -240
+      ],
+      "id": "987c9250-3b2d-4380-a388-c21edcfc5944",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "📄 Document Processing\n\nPurpose\n\n• Extract text from PDF\n• Normalize extracted content\n• Verify minimum text length\n\nReject scanned or empty documents.",
+        "height": 672,
+        "width": 608,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -288
+      ],
+      "id": "dcd246e8-3408-40fd-a439-0a7257515f4c",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "🤖 AI Contract Analysis\n\nOpenAI extracts:\n\n• Document type\n• Summary\n• Parties\n• Dates\n• Financial amounts\n• Obligations\n• Risk level\n• Confidence",
+        "height": 896,
+        "width": 576,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        992,
+        -448
+      ],
+      "id": "bb4182b6-c70b-47f9-afdd-d011815873df",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "🧠 Business Logic\n\nConvert AI response\ninto structured fields.\n\nRisk Levels:\n\nLOW\nMEDIUM\nHIGH",
+        "height": 928,
+        "width": 288,
+        "color": "#3C6CB9"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        -464
+      ],
+      "id": "fed1ca02-ee50-4020-b5cd-db2efa342f3b",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "⚠ Risk Classification\n\nAssign priority\naccording to AI result.\n\nLOW\n→ Inform\n\nMEDIUM\n→ Review\n\nHIGH\n→ Immediate Review",
+        "height": 1072,
+        "width": 528,
+        "color": "#D21414"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        -608
+      ],
+      "id": "95cb12dd-9695-4eeb-9ab9-9858f6096dff",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "🔀 Merge Results\n\nMerge all branches\ninto one unified output.\n\nContinue with\ncommon workflow.",
+        "height": 592,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        -368
+      ],
+      "id": "0bed7b97-b14d-40be-8067-1ade074437d2",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "📊 Data Logging\n\nStore analysis\ninside Google Sheets.\n\nUseful for:\n\n• History\n• Audit\n• Reporting\n• Analytics",
+        "height": 592,
+        "width": 400,
+        "color": "#14A317"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2608,
+        -368
+      ],
+      "id": "56136daf-ff19-46e2-bf33-347846e6454d",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "📄 HTML Report\n\nGenerate a professional\ncontract review report.\n\nIncludes:\n\n• Summary\n• Risk\n• Confidence\n• Obligations\n• Review points",
+        "height": 592,
+        "color": "#A0701C"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3008,
+        -368
+      ],
+      "id": "0e48b3e1-3fa8-4b39-86ea-5f3f7525a270",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"COMPLETED\",\n  \"message\": \"Contract review completed and report sent.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        4240,
+        160
+      ],
+      "id": "public-success-response-node",
+      "name": "Respond with Success"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate File": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unsupported File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsupported File": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Normalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Text Length": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unsupported Scanned Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsupported Scanned Document": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "LOW Priority",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MEDIUM Priority",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HIGH Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Generate HTML Contract Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond with Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Document": {
+      "main": [
+        [
+          {
+            "node": "Validate Text Length",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Output": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LOW Priority": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MEDIUM Priority": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HIGH Priority": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Generate HTML Contract Report": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
